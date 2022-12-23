@@ -92,9 +92,9 @@ export function tfMiddleware(options) {
         }
 
         // Normalize keypoints
-        let newKeyPoints = {};
         for (let pose of results)
         {
+            let newKeyPoints = {};
             for (let kp of pose.keypoints)
             {
                 kp.position.x /= width;
