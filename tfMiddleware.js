@@ -122,7 +122,7 @@ export function tfMiddleware(options) {
         // Run interest calculation
         if (req.query.interest == '1')
         {
-            results.interest = areasOfInterest(results, { aspect: 4/3 });
+            results.interest = areasOfInterest(results, { aspect: parseFloat(req.query.aspect ?? 1) });
         }
 
 
