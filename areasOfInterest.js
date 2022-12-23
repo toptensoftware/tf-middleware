@@ -122,6 +122,8 @@ export function areasOfInterest(results, options)
     let totalImpWeight = 0;
     for (let pose of poses)
     {
+        pose.bounds = Rectangle.containingPoints(Object.keys(pose.keypoints).map(x => pose.keypoints[x].position));
+
         if (pose.keypoints.nose && pose.keypoints.leftEye && pose.keypoints.rightEye)
         {
             // Work out perimeter
