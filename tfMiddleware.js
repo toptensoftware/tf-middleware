@@ -88,17 +88,23 @@ export function tfMiddleware(options) {
         for (let pose of results)
         {
             pose.skeleton = posenet.getAdjacentKeyPoints(pose.keypoints, 0.5)
-                .map(keypoints => keypoints.map(x => pose.keypoints.indexOf(x)));
+                .map(keypoints => keypoints.map(x => x.part));
         }
 
         // Normalize keypoints
+        let newKeyPoints = {};
         for (let pose of results)
         {
             for (let kp of pose.keypoints)
             {
                 kp.position.x /= width;
                 kp.position.y /= height;
+                newKeyPoints[kp.part] = {
+                    score: kp.score,
+                    position: kp.position,
+                }
             }
+            pose.keypoints = newKeyPoints;
         }
 
         return {
@@ -125,7 +131,8 @@ export function tfMiddleware(options) {
         let result;
         try
         {
-            result = JSON.parse(await fs.readFile(cache_file, 'utf8'));
+            if (req.query.read_cache != '0')
+                result = JSON.parse(await fs.readFile(cache_file, 'utf8'));
         }
         catch { /* don't care */ }
 
@@ -156,6 +163,7 @@ export function tfMiddleware(options) {
             ]);
 
             result = {
+                apiver: 1,
                 etag: response.headers.get('etag'),
                 width,
                 height,
@@ -164,7 +172,8 @@ export function tfMiddleware(options) {
             }
 
             // Save to cache file
-            await fs.writeFile(cache_file, JSON.stringify(result));
+            if (req.query.write_cache != '0')
+                await fs.writeFile(cache_file, JSON.stringify(result));
 
             result.cacheHit = false;
         }
