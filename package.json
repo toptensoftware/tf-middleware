@@ -13,6 +13,7 @@
     "@tensorflow-models/coco-ssd": "^2.2.2",
     "@tensorflow-models/posenet": "^2.2.2",
     "@tensorflow/tfjs-node": "^4.1.0",
+    "@toptensoftware/jslib": "github:toptensoftware/jslib",
     "@toptensoftware/nodelib": "github:toptensoftware/nodelib",
     "download": "^8.0.0",
     "express-async-handler": "^1.2.0",
