@@ -1,17 +1,36 @@
-// opts.populationSize - initial population size
-// opts.random() - generate a random individual
-// opts.fitness(indvidual) - evaluate fitness of an individual
-// opts.fitnessSign - -1 for lower fitness better, 1 for higher fitness better
-// opts.terminate(ga) - query whether to continue
-// opts.generate(ga) - query whether to continue
 
-// ga.genCount - current generation number
-// ga.population - the current population
-// ga.opts - as passed to run_ga
-// ga.fitness - current best fitness
+/*
 
+Runs a genetic algorithmm controlled by the following options and callbacks
+
+    opts.populationSize      initial population size
+    opts.random()            callback to generate a random individual
+    opts.fitness(indvidual)  callback to evaluate fitness of an individual
+    opts.fitnessSign         -1 for lower fitness better, 1 for higher fitness better
+    opts.terminate(ga)       callback to query whether to continue
+    opts.generate(ga)        callback to generate the next population
+
+`ga` is a context that stores the current state of the run
+
+    ga.genCount              current generation number
+    ga.population[]          the current population
+    ga.opts{}                as passed to run_ga
+    ga.fitness               current best fitness
+
+Each entry in the population is stored as:
+ 
+    entry.individual         what ever the callbacks provide as an individual
+    entry.fitness            the evaluated fitness of this individual
+
+An individual can be any javascript value (object, array, string, etc...) so 
+long as all your callbacks work with/expect the same thing.
+
+Returns `ga` when finished.
+
+*/
 export function run_ga(opts)
 {
+    // Setup the run context
     let ga = {
         genCount: 0,
         population: [],
@@ -27,6 +46,7 @@ export function run_ga(opts)
     // Process generations
     while (true)
     {
+        // Bump generation number
         ga.genCount++;
 
         // Calculate fitness of population
@@ -45,7 +65,7 @@ export function run_ga(opts)
         // Store best fitness
         ga.fitness = ga.population[0].fitness;
         
-        // Early break out?
+        // Terminate?
         if (opts.terminate(ga))
             break;
 
@@ -57,10 +77,14 @@ export function run_ga(opts)
     return ga;
 }
 
-// Creates a termination function that will terminate on the following conditions:
-//  - opts.maxGenerations - always stop after this many generations
-//  - opts.maxGenerationsNoImprovement - stop after this many generations of no improvement
-//  - opts.fitness - terminate when fitness level reached
+/*
+Creates a termination function that will terminate on the following conditions:
+
+    opts.minGenerations               always run at least this many generations
+    opts.maxGenerations               always stop after this many generations
+    opts.maxGenerationsNoImprovement  stop after this many generations of no improvement
+    opts.fitness                      terminate when fitness level reached
+*/
 export function make_terminate(opts)
 {
     let gen = 0;
@@ -68,12 +92,15 @@ export function make_terminate(opts)
     let bestFitnessGenerations = 0;
     return function(ga)
     {
+        // Min generation check
         if (opts.minGenerations && ga.genCount < opts.minGenerations)
             return false;
 
+        // Max generation check
         if (opts.maxGenerations && ga.genCount >= opts.maxGenerations)
             return true;
 
+        // Max generations with no improvement to fitness check
         if (opts.maxNoImprovementGenerations)
         {
             // Stop after N generations of no improvment to fitness
@@ -91,6 +118,7 @@ export function make_terminate(opts)
             }
         }
 
+        // Reached required fitness check
         if (opts.fitness)
         {
             if (ga.opts.fitnessSign < 0)
@@ -109,6 +137,22 @@ export function make_terminate(opts)
     }
 }
 
+/* 
+Create a generator functiom that will populate new generations based on specified criteria:
+
+    opts.fitest             keep this many of the most fitest individuals
+    opts.cross              generate this many new individuals by crossing ("mating") individuals from
+                            the previous generation
+    opts.crosser(ga, a, b)  callback to generate a new individual by crossing parent individuals 'a' 
+                            and 'b'
+    opts.mutate             generate this many new individuals by mutating individuals from the previous
+                            generation
+    opts.mutator(ga, a)     callback to mutate indivadual 'a'
+    opts.random             randomly generate this many new individuals using the random callback passed 
+                            to run_ga()
+    opts.select(ga)         callback to randomly select an individual from the population (used to select
+                            the individuals to be used for for cross and mutate operations)
+*/
 export function make_generator(opts)
 {
     return function generate(ga)
@@ -142,15 +186,23 @@ export function make_generator(opts)
         {
             newPop.push({ individual: ga.opts.random() });
         }
+
         return newPop;
     }
 }
 
+/*
+Randomly selects an individual from existing population
+*/
 export function select_random(ga)
 {
     return ga.population[Math.floor(Math.random() * ga.population.length)]
 }
 
+/*
+Makes a ranked random selection from prior generation that's more likely
+to select a fitter individual.  `bias` controls the strength of the favortism.
+*/
 export function make_select_ranked(bias)
 {
     return function (ga)
@@ -161,6 +213,8 @@ export function make_select_ranked(bias)
 }
 
 /*
+//Simple usage example that tries to find the center of a 1x1 rectangle.
+
 let r = run_ga({
     populationSize: 15,
     random: () => ({ x: Math.random(), y: Math.random() }),
@@ -179,6 +233,7 @@ let r = run_ga({
         mutate: 6,
         cross: 6,
         mutator: (ga, i) => {
+            // Cheat: as the overall fitness improves, make smaller mutations
             let fitness = ga.fitness;
             return {
                 x: i.x + Math.random() * fitness * 2 - fitness,
